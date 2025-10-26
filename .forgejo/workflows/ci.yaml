@@ -1,0 +1,18 @@
+on: [push]
+jobs:
+  build:
+    name: Build ${{matrix.platform}}
+    runs-on: nixos
+    strategy:
+      matrix:
+        platform: [native, remarkable2]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run the build
+        run: set -x && nix-build -A ${{matrix.platform}}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.platform}}
+          path: result/bin/
