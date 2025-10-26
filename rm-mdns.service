@@ -1,0 +1,14 @@
+[Unit]
+Description=mDNS Responder
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/root/rm-mdns
+Restart=on-failure
+RestartSec=10s
+RestartSteps=10
+RestartMaxDelaySec=10min
+
+[Install]
+WantedBy=multi-user.target
