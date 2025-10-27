@@ -116,6 +116,7 @@ static int setup_signal_handler() {
   sigemptyset(&mask);
   sigaddset(&mask, SIGINT);
   sigaddset(&mask, SIGQUIT);
+  sigaddset(&mask, SIGTERM);
 
   // Block signals so that they are not handled by default handler.
   // Otherwise they would not trigger the signalfd.
