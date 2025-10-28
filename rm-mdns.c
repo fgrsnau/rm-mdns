@@ -14,12 +14,16 @@
 
 #include "mdns.h"
 
-static const char RM_MDNS_HOSTNAME[] = "remarkable-stha.local.";
-static const size_t RM_MDNS_HOSTNAME_LENGTH = sizeof(RM_MDNS_HOSTNAME) - 1;
+static const char RM_MDNS_DEFAULT_HOSTNAME[] = "remarkable.local.";
+static const size_t RM_MDNS_DEFAULT_HOSTNAME_LENGTH =
+    sizeof(RM_MDNS_DEFAULT_HOSTNAME) - 1;
 
 static const char RM_MDNS_WIFI_IFACE[] = "wlan0";
 static const size_t RM_MDNS_WIFI_IFACE_LENGTH =
     sizeof(RM_MDNS_WIFI_IFACE_LENGTH) - 1;
+
+static const char *hostname = RM_MDNS_DEFAULT_HOSTNAME;
+static size_t hostname_length = RM_MDNS_DEFAULT_HOSTNAME_LENGTH;
 
 static char namebuffer[256];
 static char recvbuffer[2048];
@@ -70,8 +74,8 @@ static int callback(int sock, const struct sockaddr *from, size_t addrlen,
       mdns_string_extract(data, size, &offset, namebuffer, sizeof(namebuffer));
 
   // We only anwser for our name.
-  if (name.length != RM_MDNS_HOSTNAME_LENGTH ||
-      memcmp(name.str, RM_MDNS_HOSTNAME, RM_MDNS_HOSTNAME_LENGTH) != 0)
+  if (name.length != hostname_length ||
+      memcmp(name.str, hostname, hostname_length) != 0)
     return 0;
 
   // Return A record.
@@ -84,8 +88,8 @@ static int callback(int sock, const struct sockaddr *from, size_t addrlen,
     fflush(stdout);
 
     mdns_record_t answer = {
-        .name.str = RM_MDNS_HOSTNAME,
-        .name.length = RM_MDNS_HOSTNAME_LENGTH,
+        .name.str = hostname,
+        .name.length = hostname_length,
         .type = MDNS_RECORDTYPE_A,
     };
 
@@ -231,7 +235,31 @@ static int setup_epoll(int socketfd, int sigfd) {
   return epollfd;
 }
 
+void setup_hostname_from_args(int argc, const char *const *argv) {
+  if (argc == 2) {
+    hostname = argv[1];
+    hostname_length = strlen(hostname);
+  }
+
+  if (argc > 2) {
+    fprintf(stderr, "[setup_hostname_from_args] Too many arguments\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // `.local.` has 7 characters. The hostname should have at least one
+  // additional character in front.
+  if (hostname_length < 8 ||
+      memcmp(hostname + hostname_length - 7,
+             RM_MDNS_DEFAULT_HOSTNAME + RM_MDNS_DEFAULT_HOSTNAME_LENGTH - 7,
+             7) != 0) {
+    fprintf(stderr, "[setup_hostname_from_args] Hostname argument does not end "
+                    "with `.local.`\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
 int main(int argc, const char *const *argv) {
+  setup_hostname_from_args(argc, argv);
   int socketfd = open_listening_socket();
   int sigfd = setup_signal_handler();
   int epollfd = setup_epoll(socketfd, sigfd);

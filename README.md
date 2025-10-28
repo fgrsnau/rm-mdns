@@ -2,8 +2,10 @@
 
 This repository contains a tiny multicast DNS (mDNS) responder for the remarkable 2 e-ink tablet.
 
-Instead of using the IP address of the remarkable you can connect to `remarkable-stha.local`.
+Instead of using the IP address of the remarkable you can connect to `remarkable.local`.
 For example, to connect via SSH run `ssh root@remarkable.local`.
+
+You can also specify a custom hostname by passing it as a argument. Note that it should end with a period to mark that fully qualified name, e.g., `rm-mdns my-custom-hostname.local.`.
 
 ## How to Build
 
@@ -45,9 +47,6 @@ However, the statically linked `rm-mdns` binary is less than 600 KiB, so it does
 ```shell
 user@local$ git clone https://git.stha.de/stefan/rm-mdns.git
 user@local$ cd rm-mdns
-user@local$ vim rm-mdns.c
-# edit the host name for which you would like your remarkable to responsd
-:wq
 user@local$ nix-build -A remarkable2
 user@local$ scp result/bin/rm-mdns root@${IP_OF_REMARKABLE}:/root/rm-mdns
 user@local$ scp result/bin/rm-mdns.service root@${IP_OF_REMARKABLE}:/root/rm-mdns.service
@@ -56,7 +55,8 @@ root@remarkable# ln -s /root/rm-mdns.service /etc/systemd/system
 root@remarkable# systemctl enable --now rm-mdns
 ```
 
-From now on you can now connect to your remarkable tablet with by running `ssh root@remarkable-stha.local`.
+From now on you can now connect to your remarkable tablet with by running `ssh root@remarkable.local`.
+To use a custom hostname change the `ExecStart` line in `rm-mdns.services`, e.g., `ExecStart=/root/rm-mdns my-custom-hostname.local.`.
 
 If you are looking for prebuild binary, you can download them from <https://www.stha.de/shares/rm-mdns/>.
 
@@ -69,9 +69,6 @@ root@remarkable# rm -f /etc/systemd/system/rm-mdns /root/rm-mdns /root/rm-mdns.s
 ```
 
 ## Shortcomings
-
-First of all, the host name is hard-coded in the `rm-mdns.c` file.
-To change the host name one has to change the source and recompile the project.
 
 The mDNS responder is not fully standard compliant:
 
