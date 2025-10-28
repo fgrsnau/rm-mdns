@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <strings.h>
 #include <sys/epoll.h>
+#include <sys/ioctl.h>
 #include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -17,6 +18,8 @@ static const char RM_MDNS_HOSTNAME[] = "remarkable-stha.local.";
 static const size_t RM_MDNS_HOSTNAME_LENGTH = sizeof(RM_MDNS_HOSTNAME) - 1;
 
 static const char RM_MDNS_WIFI_IFACE[] = "wlan0";
+static const size_t RM_MDNS_WIFI_IFACE_LENGTH =
+    sizeof(RM_MDNS_WIFI_IFACE_LENGTH) - 1;
 
 static char namebuffer[256];
 static char recvbuffer[2048];
@@ -100,20 +103,78 @@ static int callback(int sock, const struct sockaddr *from, size_t addrlen,
 }
 
 static int open_listening_socket() {
-  // Open sockets to listen to incoming mDNS queries on port 5353
+  // Adaptation of `mdns_socket_open_ipv4` and `mdns_socket_setup_ipv4`.
+  //
+  // Note: The Linux kernel has to know what socket is used for multicast
+  // traffic (where to join the multicast group for incoming traffic, what
+  // interface should be used for outgoing traffic). Normally, the device is
+  // determined automatically, e.g., by presence of route to the multicast route
+  // (or a more generic default route). As the interface might be down, such a
+  // route might not exist. Therefore, we bind the socket to the wifi interface
+  // directly (by using SO_BINDTODEVICE, and passing the ifindex to
+  // IP_ADD_MEMBERSHIP and IP_MULTICAST_IF).
+
+  // Open sockets to listen to incoming mDNS queries on port 5353.
   struct sockaddr_in sock_addr;
   memset(&sock_addr, 0, sizeof(struct sockaddr_in));
   sock_addr.sin_family = AF_INET;
   sock_addr.sin_addr.s_addr = INADDR_ANY;
   sock_addr.sin_port = htons(MDNS_PORT);
 
-  int socket = mdns_socket_open_ipv4(&sock_addr);
-  if (socket == -1) {
+  int fd = (int)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+  if (fd == -1) {
     perror("[open_listening_socket] Could not open socket");
     exit(EXIT_FAILURE);
   }
 
-  return socket;
+  // Set socket options.
+  unsigned char ttl = 1;
+  unsigned char loopback = 1;
+  unsigned int reuseaddr = 1;
+  unsigned int ifindex = if_nametoindex(RM_MDNS_WIFI_IFACE);
+
+  setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, RM_MDNS_WIFI_IFACE,
+             RM_MDNS_WIFI_IFACE_LENGTH);
+  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&reuseaddr,
+             sizeof(reuseaddr));
+#ifdef SO_REUSEPORT
+  setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, (const char *)&reuseaddr,
+             sizeof(reuseaddr));
+#endif
+  setsockopt(fd, IPPROTO_IP, IP_MULTICAST_TTL, (const char *)&ttl, sizeof(ttl));
+  setsockopt(fd, IPPROTO_IP, IP_MULTICAST_LOOP, (const char *)&loopback,
+             sizeof(loopback));
+
+  // Join multicast group on specific device.
+  struct ip_mreqn req;
+  memset(&req, 0, sizeof(req));
+  req.imr_multiaddr.s_addr =
+      htonl((((uint32_t)224U) << 24U) | ((uint32_t)251U));
+  req.imr_address = sock_addr.sin_addr;
+  req.imr_ifindex = ifindex;
+
+  if (setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req)) == -1) {
+    perror("[open_listening_socket] Could not join multicast group");
+    exit(EXIT_FAILURE);
+  }
+
+  if (setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, &req, sizeof(req)) == -1) {
+    perror("[open_listening_socket] Could not set multicast interface");
+    exit(EXIT_FAILURE);
+  }
+
+  // Bind socket address.
+  if (bind(fd, (struct sockaddr *)&sock_addr, sizeof(struct sockaddr_in)) ==
+      -1) {
+    perror("[open_listening_socket] Could not bind address");
+    exit(EXIT_FAILURE);
+  }
+
+  // Set socket to non-blocking.
+  const int flags = fcntl(fd, F_GETFL, 0);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+  return fd;
 }
 
 static int setup_signal_handler() {
