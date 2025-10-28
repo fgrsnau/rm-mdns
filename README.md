@@ -42,7 +42,7 @@ This is not covered by this README.
 The following instruction will install the binary and the systemd unit to `/root`.
 Afterwards the systemd unit is linked to the service directory and enabled with systemd.
 Note that `/root` is on the system partition and is not encrypted only has a small amount of free space.
-However, the statically linked `rm-mdns` binary is less than 600 KiB, so it does not consume much space.
+However, the statically linked `rm-mdns` binary is less than 50 KiB, so it does not consume much space.
 
 ```shell
 user@local$ git clone https://git.stha.de/stefan/rm-mdns.git
