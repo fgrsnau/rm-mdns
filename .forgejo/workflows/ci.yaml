@@ -16,3 +16,36 @@ jobs:
         with:
           name: ${{matrix.platform}}
           path: result/bin/
+
+  package:
+    name: Upload package
+    runs-on: nixos
+    needs:
+      - build
+    env:
+      PACKAGE_USER: "${{ vars.package_user }}"
+      PACKAGE_TOKEN: "${{ secrets.package_token }}"
+      PACKAGE_URL: "${{ forge.server_url }}/api/packages/${{ forge.repository_owner }}/generic/rm-mdns/${{ forge.ref_name }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Stamp revision
+        run: git log -1 >revision.txt
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: remarkable2
+      - name: Upload package
+        run: |
+          echo "::notice::Setup"
+          curl=$(nix-build '<nixpkgs>' -A curl --no-out-link)/bin/curl
+          fire() {
+            ${curl} --fail-with-body -u "${PACKAGE_USER}:${PACKAGE_TOKEN}" "$@"
+          }
+          echo "::notice::Deleting old package"
+          fire -X DELETE "${PACKAGE_URL}" || true
+          echo "::notice::Uploading new files"
+          fire --upload-file rm-mdns "${PACKAGE_URL}/rm-mdns"
+          fire --upload-file rm-mdns.service "${PACKAGE_URL}/rm-mdns.service"
+          fire --upload-file revision.txt "${PACKAGE_URL}/revision.txt"
+          echo "::notice::Done"
