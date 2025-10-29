@@ -1,11 +1,15 @@
 # rm-mdns
 
-This repository contains a tiny multicast DNS (mDNS) responder for the remarkable 2 e-ink tablet.
+This repository contains a tiny multicast DNS (mDNS) responder for the
+remarkable 2 e-ink tablet.
 
-Instead of using the IP address of the remarkable you can connect to `remarkable.local`.
-For example, to connect via SSH run `ssh root@remarkable.local`.
+Instead of using the IP address of the remarkable you can connect to
+`remarkable.local`. For example, to connect via SSH run
+`ssh root@remarkable.local`.
 
-You can also specify a custom hostname by passing it as a argument. Note that it should end with a period to mark that fully qualified name, e.g., `rm-mdns my-custom-hostname.local.`.
+You can also specify a custom hostname by passing it as a argument. Note that it
+should end with a period to mark that fully qualified name, e.g.,
+`rm-mdns my-custom-hostname.local.`.
 
 ## How to Build
 
@@ -34,15 +38,16 @@ user@local$ meson setup build
 user@local$ meson compile -C build
 ```
 
-Without nix you have to manually set up cross-compilation with the remarkable toolchain.
-This is not covered by this README.
+Without nix you have to manually set up cross-compilation with the remarkable
+toolchain. This is not covered by this README.
 
 ## How to Install
 
-The following instruction will install the binary and the systemd unit to `/root`.
-Afterwards the systemd unit is linked to the service directory and enabled with systemd.
-Note that `/root` is on the system partition and is not encrypted only has a small amount of free space.
-However, the statically linked `rm-mdns` binary is less than 50 KiB, so it does not consume much space.
+The following instruction will install the binary and the systemd unit to
+`/root`. Afterwards the systemd unit is linked to the service directory and
+enabled with systemd. Note that `/root` is on the system partition and is not
+encrypted only has a small amount of free space. However, the statically linked
+`rm-mdns` binary is less than 50 KiB, so it does not consume much space.
 
 ```shell
 user@local$ git clone https://git.stha.de/stefan/rm-mdns.git
@@ -55,10 +60,13 @@ root@remarkable# ln -s /root/rm-mdns.service /etc/systemd/system
 root@remarkable# systemctl enable --now rm-mdns
 ```
 
-From now on you can now connect to your remarkable tablet with by running `ssh root@remarkable.local`.
-To use a custom hostname change the `ExecStart` line in `rm-mdns.services`, e.g., `ExecStart=/root/rm-mdns my-custom-hostname.local.`.
+From now on you can now connect to your remarkable tablet with by running
+`ssh root@remarkable.local`. To use a custom hostname change the `ExecStart`
+line in `rm-mdns.services`, e.g.,
+`ExecStart=/root/rm-mdns my-custom-hostname.local.`.
 
-If you do not want to cross-compile the binary on your own, you can [download prebuild binaries][package].
+If you do not want to cross-compile the binary on your own, you can [download
+prebuild binaries][package].
 
 ## How to Uninstall
 
@@ -76,12 +84,14 @@ The mDNS responder is not fully standard compliant:
 - It does not handle the unicast flag in the mDNS query.
 - Probably other non-compliant behaviour.
 
-Apart from this, the responder will only answer for `A` record requests, so it will only work with IPv4.
-Adding IPv6 support should be straight-forward, though.
+Apart from this, the responder will only answer for `A` record requests, so it
+will only work with IPv4. Adding IPv6 support should be straight-forward,
+though.
 
 ## Credits
 
-This project uses the [public domain `mdns` library][mdns] by Mattias Jansson and contributors.
+This project uses the [public domain `mdns` library][mdns] by Mattias Jansson
+and contributors.
 
 [mdns]: https://github.com/mjansson/mdns
 [package]: https://git.stha.de/stefan/-/packages/generic/rm-mdns/main
