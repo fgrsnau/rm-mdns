@@ -8,8 +8,9 @@ pkgs.mkShell {
     pkgs.meson
     pkgs.ninja
 
-    pkgs.vim
     pkgs.clang-tools
     pkgs.nixfmt-rfc-style
+    pkgs.nodePackages.prettier
+    pkgs.vim
   ];
 }

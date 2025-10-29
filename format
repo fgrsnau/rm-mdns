@@ -1,0 +1,7 @@
+#!/bin/sh
+
+ret=0
+(set -x && clang-format -i rm-mdns.c) || ret=1
+(set -x && prettier --write --prose-wrap=always README.md) || ret=1
+(set -x && prettier --write .forgejo/workflows/*.yaml) || ret=1
+exit ${ret}
