@@ -58,7 +58,7 @@ root@remarkable# systemctl enable --now rm-mdns
 From now on you can now connect to your remarkable tablet with by running `ssh root@remarkable.local`.
 To use a custom hostname change the `ExecStart` line in `rm-mdns.services`, e.g., `ExecStart=/root/rm-mdns my-custom-hostname.local.`.
 
-If you are looking for prebuild binary, you can download them from <https://www.stha.de/shares/rm-mdns/>.
+If you do not want to cross-compile the binary on your own, you can [download prebuild binaries][package].
 
 ## How to Uninstall
 
@@ -84,3 +84,4 @@ Adding IPv6 support should be straight-forward, though.
 This project uses the [public domain `mdns` library][mdns] by Mattias Jansson and contributors.
 
 [mdns]: https://github.com/mjansson/mdns
+[package]: https://git.stha.de/stefan/-/packages/generic/rm-mdns/main
